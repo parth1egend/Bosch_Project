@@ -63,20 +63,7 @@ def handle_userinput(user_question):
             st.write(bot_template.replace(
                 "{{MSG}}", message.content), unsafe_allow_html=True)
             
-    # Generate probing questions
-    probing_question = generate_probing_question(user_question)
-    if probing_question:
-        st.session_state.chat_history.append(probing_question)
-        st.write(bot_template.replace(
-            "{{MSG}}", probing_question.content), unsafe_allow_html=True)
-
-def generate_probing_question(user_input):
     
-    llm = HuggingFaceHub(repo_id="google/flan-t5-xxl", model_kwargs={"temperature":0.5, "max_length":512})
-
-    probing_prompt = f"Based on the user's input: '{user_input}', ask a probing question if you need more information to answer the respective question."
-    probing_response = llm(probing_prompt)
-    return probing_response['choices'][0]['text'].strip()
 
 
 def main():
