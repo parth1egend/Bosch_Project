@@ -9,6 +9,8 @@ from langchain.memory import ConversationBufferMemory
 from langchain.chains import ConversationalRetrievalChain
 from htmlTemplates import css, bot_template, user_template
 from langchain.llms import HuggingFaceHub
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+
 
 def get_pdf_text(pdf_docs):
     text = ""
@@ -20,12 +22,19 @@ def get_pdf_text(pdf_docs):
 
 
 def get_text_chunks(text):
-    text_splitter = CharacterTextSplitter(
-        separator=" ",
+    # text_splitter = CharacterTextSplitter(
+    #     separator=" ",
+    #     chunk_size=1000,
+    #     chunk_overlap=100,
+    #     length_function=len
+    # )
+    text_splitter = RecursiveCharacterTextSplitter(
         chunk_size=1000,
         chunk_overlap=100,
-        length_function=len
+        length_function=len,
+        separators=[" ", ",", "\n"]
     )
+    
     chunks = text_splitter.split_text(text)
     return chunks
 
