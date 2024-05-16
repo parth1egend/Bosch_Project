@@ -10,6 +10,8 @@ from langchain.chains import ConversationalRetrievalChain
 from htmlTemplates import css, bot_template, user_template
 from langchain.llms import HuggingFaceHub
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.text_splitter import TokenTextSplitter
+from langchain.text_splitter import SpacyTextSplitter
 
 
 def get_pdf_text(pdf_docs):
@@ -28,11 +30,12 @@ def get_text_chunks(text):
     #     chunk_overlap=100,
     #     length_function=len
     # )
+    
     text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=1000,
+        chunk_size=600,
         chunk_overlap=100,
         length_function=len,
-        separators=[" ", ",", "\n"]
+        separators=[" ", ",", "\n", ".",]
     )
     
     chunks = text_splitter.split_text(text)
