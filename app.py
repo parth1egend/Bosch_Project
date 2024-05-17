@@ -13,6 +13,24 @@ from langchain.llms import HuggingFaceHub
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.text_splitter import TokenTextSplitter
 from langchain.text_splitter import SpacyTextSplitter
+from langchain.document_loaders import PyPDFLoader
+from langchain.document_loaders import TextLoader
+from langchain.document_loaders import Docx2txtLoader
+from langchain.text_splitter import CharacterTextSplitter
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.vectorstores import Chroma
+from huggingface_hub import notebook_login
+import torch
+import transformers
+from transformers import AutoTokenizer, AutoModelForCausalLM
+from transformers import pipeline
+from langchain import HuggingFacePipeline
+from langchain.chains import ConversationalRetrievalChain
+from langchain.memory import ConversationBufferMemory
+from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.chat_models import ChatOpenAI
+import os
+import sys
 
 
 def get_pdf_text(pdf_docs):
@@ -73,10 +91,32 @@ def get_vectorstore(text_chunks, tables):
     # Combine text_chunks and table_texts
     all_texts = text_chunks + table_texts
 
-    embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instructor-xl")
+    embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instructor-xl") 
+    # embeddings = HuggingFaceInstructEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
     
     vectorstore = FAISS.from_texts(texts=all_texts, embedding=embeddings)
     return vectorstore
+
+def get_vectorChrome(text_chunks, tables):
+    # Convert tables into a list of strings
+    table_texts = []
+    for table in tables:
+        for row in table:
+            # Flatten the row if it's a list of lists
+            if all(isinstance(cell, list) for cell in row):
+                row = [item for sublist in row for item in sublist]
+            # Filter out None values
+            row = [item for item in row if item is not None]
+            table_texts.append(' '.join(row))
+
+    # Combine text_chunks and table_texts
+    all_texts = text_chunks + table_texts
+
+    # embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instructor-xl") 
+    embeddings = HuggingFaceInstructEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    
+    vectorChrome = FAISS.from_texts(texts=all_texts, embedding=embeddings)
+    return vectorChrome
 
 def get_conversation_chain(vectorstore):
     
@@ -109,6 +149,8 @@ def handle_userinput(user_question):
 
 def main():
     load_dotenv()
+    
+    
     st.set_page_config(page_title="Chat with multiple PDFs",
                        page_icon=":books:")
     st.write(css, unsafe_allow_html=True)
@@ -141,6 +183,7 @@ def main():
                 # create vector store
                 # vectorstore = get_vectorstore(text_chunks)
                 vectorstore = get_vectorstore(text_chunks, tables)
+                vectorChrome = get_vectorChrome(text_chunks, tables)
                 
                 # create conversation chain
                 st.session_state.conversation = get_conversation_chain(
