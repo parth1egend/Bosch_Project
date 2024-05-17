@@ -1,6 +1,7 @@
 import streamlit as st
 from dotenv import load_dotenv
 from PyPDF2 import PdfReader
+import pdfplumber
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.embeddings import OpenAIEmbeddings, HuggingFaceInstructEmbeddings
 from langchain.vectorstores import FAISS
@@ -23,6 +24,14 @@ def get_pdf_text(pdf_docs):
     return text
 
 
+def get_pdf_tables(pdf_docs):
+    tables = []
+    for pdf in pdf_docs:
+        with pdfplumber.open(pdf) as pdf_file:
+            for page in pdf_file.pages:
+                tables.append(page.extract_tables())
+    return tables
+
 def get_text_chunks(text):
     # text_splitter = CharacterTextSplitter(
     #     separator=" ",
@@ -42,16 +51,36 @@ def get_text_chunks(text):
     return chunks
 
 
-def get_vectorstore(text_chunks):
-    #embeddings = OpenAIEmbeddings()
+# def get_vectorstore(text_chunks):
+    
+#     embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instructor-xl")
+#     vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
+#     return vectorstore
+
+
+def get_vectorstore(text_chunks, tables):
+    # Convert tables into a list of strings
+    table_texts = []
+    for table in tables:
+        for row in table:
+            # Flatten the row if it's a list of lists
+            if all(isinstance(cell, list) for cell in row):
+                row = [item for sublist in row for item in sublist]
+            # Filter out None values
+            row = [item for item in row if item is not None]
+            table_texts.append(' '.join(row))
+
+    # Combine text_chunks and table_texts
+    all_texts = text_chunks + table_texts
+
     embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instructor-xl")
-    vectorstore = FAISS.from_texts(texts=text_chunks, embedding=embeddings)
+    
+    vectorstore = FAISS.from_texts(texts=all_texts, embedding=embeddings)
     return vectorstore
 
-
 def get_conversation_chain(vectorstore):
-    # llm = ChatOpenAI()
-    llm = HuggingFaceHub(repo_id="google/flan-t5-xxl", model_kwargs={"temperature":0.5, "max_length":512})
+    
+    llm = HuggingFaceHub(repo_id="google/flan-t5-xxl", model_kwargs={"temperature":0.7, "max_length":700})
     
     llm.client.api_url = 'https://api-inference.huggingface.co/models/google/flan-t5-xxl'
     
@@ -66,7 +95,7 @@ def get_conversation_chain(vectorstore):
 
 
 def handle_userinput(user_question):
-    response = st.session_state.conversation({'question': user_question})
+    response = st.session_state.conversation({'question': user_question + ". If you think you need anymore information please let me know and ask probing question. I am here to help you."})
     st.session_state.chat_history = response['chat_history']
 
     for i, message in enumerate(st.session_state.chat_history):
@@ -103,12 +132,16 @@ def main():
                 # get pdf text
                 raw_text = get_pdf_text(pdf_docs)
 
+                # get pdf tables
+                tables = get_pdf_tables(pdf_docs)
+                
                 # get the text chunks
                 text_chunks = get_text_chunks(raw_text)
 
                 # create vector store
-                vectorstore = get_vectorstore(text_chunks)
-
+                # vectorstore = get_vectorstore(text_chunks)
+                vectorstore = get_vectorstore(text_chunks, tables)
+                
                 # create conversation chain
                 st.session_state.conversation = get_conversation_chain(
                     vectorstore)
