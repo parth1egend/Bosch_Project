@@ -84,7 +84,7 @@ def get_conversation_chain(vectorstore):
     return conversation_chain
 
 def handle_userinput(user_question):
-    response = st.session_state.conversation({'question': user_question + ". If you think my question is unclear please let me know and ask probing question. I am here to help you. Also keep in mind to be short and to the point answers in like some lines, please be strict about it.Like if it is suffice, you should give few words answer on objective questions."})
+    response = st.session_state.conversation({'question': user_question + ". If you think my question is unclear please let me know and ask probing question. Also keep in mind to give short and precise answers. Example you should give few words answer on objective questions."})
     st.session_state.chat_history = response['chat_history']
 
     for i, message in enumerate(st.session_state.chat_history):
