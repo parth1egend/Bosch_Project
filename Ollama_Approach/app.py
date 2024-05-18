@@ -1,4 +1,5 @@
 import streamlit as st
+import torch
 from dotenv import load_dotenv
 from PyPDF2 import PdfReader
 import pdfplumber
@@ -10,7 +11,7 @@ from langchain.prompts import ChatPromptTemplate
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 from htmlTemplates import css, bot_template, user_template
-import os
+
 
 def get_pdf_text(pdf_docs):
     text = ""
@@ -53,7 +54,14 @@ def get_vectorstore(text_chunks, tables):
     # Combine text_chunks and table_texts
     all_texts = text_chunks + table_texts
 
-    embeddings = HuggingFaceInstructEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
+    if(torch.backends.mps.is_available()):
+        device = 'mps'
+    elif(torch.cuda.is_available()):
+        device = 'cuda'
+    else:
+        device = 'cpu'
+
+    embeddings = HuggingFaceInstructEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2", model_kwargs={'device': device}, encode_kwargs={'device': device})
     
     vectorstore = FAISS.from_texts(texts=all_texts, embedding=embeddings)
     return vectorstore
@@ -61,20 +69,6 @@ def get_vectorstore(text_chunks, tables):
 def get_conversation_chain(vectorstore):
     llm = Ollama(model="llama3")
     memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
-
-    template = """
-        User: You are an AI Assistant that follows instructions extremely well.
-        Please be truthful and give direct answers. Please tell 'I don't know' if user query is not in CONTEXT
-
-        Keep in mind, you will lose the job, if you answer out of CONTEXT questions
-
-        CONTEXT: {context}
-        Query: {question}
-
-        Remember only return AI answer
-        Assistant:
-    """
-    prompt = ChatPromptTemplate.from_template(template)
 
     conversation_chain = ConversationalRetrievalChain.from_llm(
         llm=llm,

@@ -1,5 +1,7 @@
 streamlit
+torch
 python-dotenv
 PyPDF2
 pdfplumber
 langchain
+faiss-cpu
