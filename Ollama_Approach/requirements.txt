@@ -5,3 +5,4 @@ PyPDF2
 pdfplumber
 langchain
 faiss-cpu
+langchain_community

@@ -5,9 +5,8 @@ from PyPDF2 import PdfReader
 import pdfplumber
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain.embeddings import HuggingFaceInstructEmbeddings
-from langchain.vectorstores import FAISS
-from langchain.llms import Ollama
-from langchain.prompts import ChatPromptTemplate
+from langchain_community.vectorstores import Chroma
+from langchain_community.llms import Ollama
 from langchain.chains import ConversationalRetrievalChain
 from langchain.memory import ConversationBufferMemory
 from htmlTemplates import css, bot_template, user_template
@@ -63,7 +62,11 @@ def get_vectorstore(text_chunks, tables):
 
     embeddings = HuggingFaceInstructEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2", model_kwargs={'device': device}, encode_kwargs={'device': device})
     
-    vectorstore = FAISS.from_texts(texts=all_texts, embedding=embeddings)
+    # Use Chroma vectorstore instead of FAISS
+    vectorstore = Chroma.from_texts(texts=all_texts, embedding=embeddings)
+
+    # vectorstore.save("./vectorstore_path")
+
     return vectorstore
 
 def get_conversation_chain(vectorstore):
