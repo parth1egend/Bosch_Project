@@ -4,5 +4,5 @@ python-dotenv
 PyPDF2
 pdfplumber
 langchain
-faiss-cpu
 langchain_community
+chromadb
