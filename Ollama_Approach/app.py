@@ -53,26 +53,31 @@ def get_vectorstore(text_chunks, tables):
     # Combine text_chunks and table_texts
     all_texts = text_chunks + table_texts
 
-    if(torch.backends.mps.is_available()):
+    if torch.backends.mps.is_available():
         device = 'mps'
-    elif(torch.cuda.is_available()):
+    elif torch.cuda.is_available():
         device = 'cuda'
     else:
         device = 'cpu'
 
     embeddings = HuggingFaceInstructEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2", model_kwargs={'device': device}, encode_kwargs={'device': device})
     
-    # Use Chroma vectorstore instead of FAISS
     vectorstore = Chroma.from_texts(texts=all_texts, embedding=embeddings)
-
-    # vectorstore.save("./vectorstore_path")
 
     return vectorstore
 
 def get_conversation_chain(vectorstore):
     llm = Ollama(model="llama3")
     memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
-
+    
+    initial_instruction = (
+        "You are an AI Assistant that follows instructions extremely well. Please be truthful and give direct answers. If you do not know the answer or if the user query is not in context, please say 'I don't know'. "
+        "You will lose the job if you answer out-of-context questions. If a query is confusing or unclear, ask a probing question to clarify. Remember to only return the AI's answer."
+    )
+    initial_response = "OK."
+    
+    memory.save_context({"user": initial_instruction},{"response": initial_response})
+    
     conversation_chain = ConversationalRetrievalChain.from_llm(
         llm=llm,
         retriever=vectorstore.as_retriever(),
@@ -81,12 +86,16 @@ def get_conversation_chain(vectorstore):
     return conversation_chain
 
 def handle_userinput(user_question):
-    response = st.session_state.conversation({'question': user_question + ". If you think my question is unclear please let me know and ask probing question. Also keep in mind to give short and precise answers. Example you should give few words answer on objective questions."})
+    response = st.session_state.conversation({'question': user_question})
+
+    
     st.session_state.chat_history = response['chat_history']
 
     for i, message in enumerate(st.session_state.chat_history):
+        if i==0 or i==1 : continue
+
         if i % 2 == 0:
-            st.write(user_template.replace("{{MSG}}", user_question), unsafe_allow_html=True)
+            st.write(user_template.replace("{{MSG}}", message.content), unsafe_allow_html=True)
         else:
             st.write(bot_template.replace("{{MSG}}", message.content), unsafe_allow_html=True)
 
