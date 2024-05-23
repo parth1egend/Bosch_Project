@@ -6,3 +6,4 @@ pdfplumber
 langchain
 langchain_community
 chromadb
+PyMuPDF Pillow
