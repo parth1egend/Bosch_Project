@@ -12,8 +12,7 @@ Ensure you have the following installed on your system:
 ## Installation
 
 ### Step 1: Install Ollama 
-<!-- Just write Run this on shell curl -fsSL https://ollama.com/install.sh | sh
- -->
+
 Run this on shell 
 ```sh
 curl -fsSL https://ollama.com/install.sh | sh
@@ -45,3 +44,7 @@ streamlit run app.py
 - app.py: The main application file.
 - requirements.txt: List of Python dependencies.
 - htmlTemplates.py: HTML templates used in the Streamlit app.
+
+
+
+## If any error while running the app then there might be some requirements that we have missed in the requirements.txt file. Please check the error and install the required package using pip install <package_name> command.
